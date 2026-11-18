@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import { buildSalesIntelligence } from "@/lib/analysis/sales-intelligence";
+import { dedupeLimitations } from "@/lib/sales/presentation";
+import { sanitizeClientErrorDetails } from "@/lib/sales/user-messages";
+import { profileDataset } from "@/lib/analysis/profile";
 import { runTabularAnalysis } from "@/lib/analysis/run-tabular-analysis";
 import { runResearchAnalysis, ResearchAgentError } from "@/lib/ai/run-research";
 import { MAX_QUESTION_LENGTH } from "@/lib/files/constants";
@@ -7,11 +11,42 @@ import type {
   ProcessedFileSummary,
   ResearchAgentResult,
   ResearchApiError,
+  ResearchApiErrorCode,
   ResearchApiSuccess,
 } from "@/types/research";
 
+export const maxDuration = 120;
+
 function errorResponse(error: ResearchApiError, status: number) {
-  return NextResponse.json({ ok: false as const, error }, { status });
+  return NextResponse.json(
+    {
+      ok: false as const,
+      error: {
+        ...error,
+        details: sanitizeClientErrorDetails(error.details),
+      },
+    },
+    { status },
+  );
+}
+
+function providerErrorStatus(code: ResearchApiErrorCode): number {
+  switch (code) {
+    case "MISSING_API_KEY":
+      return 503;
+    case "INVALID_REQUEST":
+      return 400;
+    case "RATE_LIMIT":
+      return 429;
+    case "TIMEOUT":
+      return 504;
+    case "AUTHENTICATION":
+    case "QUOTA_EXCEEDED":
+    case "API_FAILURE":
+      return 502;
+    default:
+      return 502;
+  }
 }
 
 export async function POST(request: Request) {
@@ -135,6 +170,10 @@ export async function POST(request: Request) {
 
   try {
     const analysisReport = runTabularAnalysis(question, contexts);
+    const tabularDatasets = contexts.flatMap((file) => file.tabularDatasets);
+    const intelligence = buildSalesIntelligence(
+      tabularDatasets.map((dataset) => profileDataset(dataset)),
+    );
     const modelOutput = await runResearchAnalysis({
       question,
       fileContexts: contexts,
@@ -142,21 +181,26 @@ export async function POST(request: Request) {
     });
 
     const generatedAt = new Date().toISOString();
-    const mergedLimitations = [
+    const uploadWarnings = contexts.flatMap((context) => context.warnings);
+    const mergedLimitations = dedupeLimitations([
+      ...uploadWarnings,
       ...analysisReport.limitations,
       ...modelOutput.limitations,
-    ].filter(
-      (value, index, array) => array.indexOf(value) === index,
-    );
+    ]);
 
     const result: ResearchAgentResult = {
       title: modelOutput.title,
       executiveSummary: modelOutput.executiveSummary,
       keyFindings: modelOutput.keyFindings,
       verifiedMetrics: analysisReport.verifiedMetrics,
-      conclusions: modelOutput.conclusions,
+      recommendations: modelOutput.recommendations,
+      conclusions: modelOutput.recommendations.map(
+        (item) =>
+          `Action: ${item.action} | Supported by: ${item.supportedBy} | Intended outcome: ${item.intendedOutcome}`,
+      ),
       limitations: mergedLimitations,
       generatedAt,
+      intelligence,
     };
 
     const payload: ResearchApiSuccess = { result, files: summaries };
@@ -169,7 +213,7 @@ export async function POST(request: Request) {
           message: error.message,
           details: error.details,
         },
-        error.code === "MISSING_API_KEY" ? 503 : 502,
+        providerErrorStatus(error.code),
       );
     }
 
@@ -177,7 +221,6 @@ export async function POST(request: Request) {
       {
         code: "API_FAILURE",
         message: "The research request failed.",
-        details: error instanceof Error ? error.message : undefined,
       },
       502,
     );

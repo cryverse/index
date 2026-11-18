@@ -50,9 +50,13 @@ export async function parsePdfBuffer(buffer: Buffer, fileName: string) {
   }
 
   const extracted = chunks.join("\n");
-  if (extracted.replace(/\s+/g, "").length < 40) {
+  const meaningfulChars = extracted.replace(/\s+/g, "").length;
+  if (meaningfulChars < 40) {
     warnings.push(
-      "Very little text was extracted. The PDF may be scanned or image-based.",
+      "Very little text was extracted. The PDF may be scanned, image-based, or empty.",
+    );
+    warnings.push(
+      "Verified sales metrics require tabular CSV or Excel uploads; PDF text is context only.",
     );
   }
 

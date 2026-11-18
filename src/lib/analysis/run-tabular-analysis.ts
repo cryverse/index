@@ -1,4 +1,5 @@
 import type { ParsedUploadContext } from "@/lib/files/types";
+import { buildVerifiedAnalyticalContext } from "./analytical-context";
 import { executeOperation, profileLookup } from "./calculations";
 import { planAnalysisOperations } from "./plan";
 import { profileDataset } from "./profile";
@@ -15,6 +16,8 @@ export function runTabularAnalysis(
       verifiedMetrics: [],
       analysisText:
         "No tabular datasets were available for deterministic analysis. PDF-only or empty uploads were not analyzed as tables.",
+      analyticalBrief:
+        "VERIFIED SALES ANALYTICAL BRIEF: no tabular datasets were parsed.",
       limitations: [
         "Deterministic calculations were not run because no CSV/XLSX tables were parsed.",
       ],
@@ -59,12 +62,29 @@ export function runTabularAnalysis(
     );
   }
 
+  const analytical = buildVerifiedAnalyticalContext(profiles);
+  const mergedLimitations = dedupeStrings([
+    ...limitations,
+    ...analytical.limitations,
+  ]);
+
   return {
     operationsRun,
     verifiedMetrics: dedupeMetrics(verifiedMetrics),
     analysisText: textBlocks.join("\n"),
-    limitations,
+    analyticalBrief: analytical.brief,
+    limitations: mergedLimitations,
   };
+}
+
+function dedupeStrings(items: string[]): string[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = item.trim().toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function dedupeMetrics(

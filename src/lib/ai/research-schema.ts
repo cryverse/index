@@ -1,11 +1,15 @@
 import { z } from "zod";
+import {
+  modelRecommendationJsonSchema,
+  modelRecommendationSchema,
+} from "./recommendation-schema";
 
 export const researchOutputSchema = z.object({
   title: z.string().min(1),
   executiveSummary: z.string().min(1),
-  keyFindings: z.array(z.string()).min(1),
-  conclusions: z.array(z.string()).min(1),
-  limitations: z.array(z.string()).min(1),
+  keyFindings: z.array(z.string()).min(1).max(6),
+  recommendations: z.array(modelRecommendationSchema).max(4),
+  limitations: z.array(z.string()).min(1).max(8),
 });
 
 export type ResearchModelOutput = z.infer<typeof researchOutputSchema>;
@@ -23,9 +27,10 @@ export const researchJsonSchema = {
         type: "array",
         items: { type: "string" },
       },
-      conclusions: {
+      recommendations: {
         type: "array",
-        items: { type: "string" },
+        maxItems: 4,
+        items: modelRecommendationJsonSchema,
       },
       limitations: {
         type: "array",
@@ -36,7 +41,7 @@ export const researchJsonSchema = {
       "title",
       "executiveSummary",
       "keyFindings",
-      "conclusions",
+      "recommendations",
       "limitations",
     ],
   },

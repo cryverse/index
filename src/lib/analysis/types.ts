@@ -39,5 +39,7 @@ export type TabularAnalysisReport = {
   operationsRun: PlannedOperation[];
   verifiedMetrics: ResearchMetric[];
   analysisText: string;
+  /** Rich verified brief for AI interpretation (sales and tabular uploads). */
+  analyticalBrief: string;
   limitations: string[];
 };

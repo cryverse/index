@@ -1,3 +1,4 @@
+import { isSalesAnalysisQuestion } from "@/lib/sales/is-sales-question";
 import type { DatasetProfile, PlannedOperation } from "./types";
 
 function questionIncludes(question: string, patterns: string[]): boolean {
@@ -36,14 +37,16 @@ export function planAnalysisOperations(
       });
     }
 
-    const wantsGrouping = questionIncludes(question, [
-      "by ",
-      "group",
-      "segment",
-      "per ",
-      "broken down",
-      "compare",
-    ]);
+    const wantsGrouping =
+      isSalesAnalysisQuestion(question) ||
+      questionIncludes(question, [
+        "by ",
+        "group",
+        "segment",
+        "per ",
+        "broken down",
+        "compare",
+      ]);
     if (
       wantsGrouping &&
       profile.numericColumns.length > 0 &&
@@ -56,16 +59,18 @@ export function planAnalysisOperations(
       });
     }
 
-    const wantsTrend = questionIncludes(question, [
-      "trend",
-      "over time",
-      "month",
-      "quarter",
-      "year",
-      "weekly",
-      "daily",
-      "time series",
-    ]);
+    const wantsTrend =
+      isSalesAnalysisQuestion(question) ||
+      questionIncludes(question, [
+        "trend",
+        "over time",
+        "month",
+        "quarter",
+        "year",
+        "weekly",
+        "daily",
+        "time series",
+      ]);
     if (
       wantsTrend &&
       profile.numericColumns.length > 0 &&

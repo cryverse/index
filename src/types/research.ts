@@ -1,3 +1,5 @@
+import type { SalesIntelligence } from "@/types/sales-intelligence";
+
 export type SupportedUploadKind = "csv" | "xlsx" | "pdf";
 
 export type ResearchApiErrorCode =
@@ -5,6 +7,10 @@ export type ResearchApiErrorCode =
   | "UNSUPPORTED_FILE"
   | "INVALID_REQUEST"
   | "PARSE_ERROR"
+  | "AUTHENTICATION"
+  | "RATE_LIMIT"
+  | "QUOTA_EXCEEDED"
+  | "TIMEOUT"
   | "API_FAILURE";
 
 export type ResearchApiError = {
@@ -19,14 +25,24 @@ export type ResearchMetric = {
   context: string;
 };
 
+export type ResearchRecommendation = {
+  action: string;
+  supportedBy: string;
+  intendedOutcome: string;
+};
+
 export type ResearchAgentResult = {
   title: string;
   executiveSummary: string;
   keyFindings: string[];
   verifiedMetrics: ResearchMetric[];
+  recommendations: ResearchRecommendation[];
+  /** Legacy string list for older dashboard views. */
   conclusions: string[];
   limitations: string[];
   generatedAt: string;
+  /** Server-computed KPIs and chart series for the sales workspace UI. */
+  intelligence: SalesIntelligence | null;
 };
 
 export type ProcessedFileSummary = {

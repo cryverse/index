@@ -6,5 +6,6 @@ export type {
   ResearchApiResponse,
   ResearchApiSuccess,
   ResearchMetric,
+  ResearchRecommendation,
   SupportedUploadKind,
 } from "./research";

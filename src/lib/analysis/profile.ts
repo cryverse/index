@@ -1,4 +1,5 @@
 import type { TabularDataset } from "@/lib/files/tabular";
+import { isLikelyIdentifierColumn } from "@/lib/files/column-identifiers";
 import { isBlank, parseDate, parseNumber } from "./coerce";
 import type { ColumnKind, ColumnProfile, DatasetProfile } from "./types";
 
@@ -75,7 +76,10 @@ export function profileDataset(dataset: TabularDataset): DatasetProfile {
   );
 
   const numericColumns = columns
-    .filter((column) => column.kind === "number")
+    .filter(
+      (column) =>
+        column.kind === "number" && !isLikelyIdentifierColumn(column.name),
+    )
     .map((column) => column.name);
   const dateColumns = columns
     .filter((column) => column.kind === "date")

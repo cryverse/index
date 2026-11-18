@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     default: "INDEX",
     template: "%s | INDEX",
   },
-  description: "AI Research & Data Agent",
+  description: "INDEX — AI Sales Employee",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
